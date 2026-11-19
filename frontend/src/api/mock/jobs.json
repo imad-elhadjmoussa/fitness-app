@@ -1,0 +1,42 @@
+[
+  {
+    "name": "daily calories aggregate",
+    "schedule": "0 1 * * *",
+    "lastRun": "2026-11-19T01:00:12.000Z",
+    "durationSec": 4.2,
+    "output": "daily_stats upserted: 42 rows",
+    "status": "success"
+  },
+  {
+    "name": "streak refresh",
+    "schedule": "0 2 * * *",
+    "lastRun": "2026-11-19T02:00:08.000Z",
+    "durationSec": 1.8,
+    "output": "streaks updated: 3 users",
+    "status": "success"
+  },
+  {
+    "name": "multi-city scan",
+    "schedule": "30 2 * * *",
+    "lastRun": "2026-11-19T02:30:05.000Z",
+    "durationSec": 3.1,
+    "output": "pairs found: 2",
+    "status": "success"
+  },
+  {
+    "name": "weekly engagement report",
+    "schedule": "0 3 * * 1",
+    "lastRun": "2026-11-17T03:00:20.000Z",
+    "durationSec": null,
+    "output": "waiting for shard secondary",
+    "status": "retrying"
+  },
+  {
+    "name": "schema variety snapshot",
+    "schedule": "0 4 * * *",
+    "lastRun": "2026-11-19T04:00:03.000Z",
+    "durationSec": 0.9,
+    "output": "variants: 4 device types",
+    "status": "success"
+  }
+]
