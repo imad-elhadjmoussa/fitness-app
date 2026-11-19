@@ -1,35 +1,52 @@
-# React + TypeScript + Vite
+# FitPulse Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React dashboard for the FitPulse fitness-tracking platform (M2 ILSI Big Data). Reads live from the Express API, or from local mock JSON when the backend is not ready.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React + Vite + TypeScript
+- React Router, TanStack Query
+- Tailwind CSS + shadcn/ui
+- Recharts (via shadcn chart)
+- Sonner toasts
 
-## React Compiler
+## Run
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
-
-Note: This will impact Vite dev & build performances.
-You can also try [the experimental native React Compiler support in plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md#rust-react-compiler) by using `compiler: true` in the plugin options instead of using the Babel plugin.
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+cd fitness-app/frontend
+npm install
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Open the URL Vite prints (usually http://localhost:5173).
+
+## Mock vs real API
+
+Defaults (see `.env`):
+
+```
+VITE_USE_MOCK=true
+VITE_API_URL=http://localhost:5000
+```
+
+| Mode | Config |
+|------|--------|
+| Mock data (~300 ms delay) | `VITE_USE_MOCK=true` |
+| Live backend | `VITE_USE_MOCK=false` and a reachable `VITE_API_URL` |
+
+No code changes are required to switch. Copy `.env.example` to `.env` if needed. The Vite dev server proxies `/api` to `VITE_API_URL` to avoid CORS during local development.
+
+## Roles
+
+Use the sidebar select (no real auth):
+
+- **Athlete** — timeline, calories, streak, profile (user `u1`)
+- **Coach** — clients, client timeline, client calories
+- **Analyst / Admin** — engagement, multi-city, schema variety, jobs
+
+## Build
+
+```bash
+npm run build
+npm run preview
+```
