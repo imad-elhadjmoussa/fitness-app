@@ -118,11 +118,11 @@ export function AppLayout() {
 
   return (
     <div className="flex min-h-svh">
-      <aside className="hidden w-64 shrink-0 border-r border-sidebar-border bg-sidebar p-4 text-sidebar-foreground md:block">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden h-svh w-64 overflow-y-auto border-r border-sidebar-border bg-sidebar p-4 text-sidebar-foreground md:block">
         <SidebarBody />
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col md:ml-64">
         <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b border-border/60 bg-background/70 px-4 backdrop-blur-xl">
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger

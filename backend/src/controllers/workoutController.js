@@ -2,9 +2,15 @@ const WorkoutLog = require("../models/WorkoutLog");
 const User = require("../models/User");
 const mongoose = require("mongoose");
 const { findMultiCityPairs } = require("../utils/multiCity");
+const { performance } = require("node:perf_hooks");
+const {
+    retryMongoWrite,
+    isRetryableMongoError
+} = require("../utils/retryMongoWrite");
 
 // POST: Insert a new workout log
 exports.createWorkout = async (req, res) => {
+    const startedAt = performance.now();
     try {
         const {
             userId,
@@ -59,8 +65,24 @@ exports.createWorkout = async (req, res) => {
         });
 
         // Save to MongoDB
-        const savedWorkout = await workout.save();
+        let savedWorkout;
+        try {
+            savedWorkout = await retryMongoWrite(() => workout.save());
+        } catch (error) {
+            if (error.code !== 11000) throw error;
 
+            // A write may commit before its acknowledgement is lost during an election.
+            savedWorkout = await WorkoutLog.findOne({
+                _id: workout._id,
+                userId: workout.userId
+            }).lean();
+            if (!savedWorkout) throw error;
+        }
+
+        res.set(
+            "Server-Timing",
+            `workout-write;dur=${(performance.now() - startedAt).toFixed(2)}`
+        );
         return res.status(201).json({
             success: true,
             message: "Workout created successfully",
@@ -68,6 +90,18 @@ exports.createWorkout = async (req, res) => {
         });
 
     } catch (error) {
+        res.set(
+            "Server-Timing",
+            `workout-write;dur=${(performance.now() - startedAt).toFixed(2)}`
+        );
+        if (isRetryableMongoError(error)) {
+            res.set("Retry-After", "1");
+            return res.status(503).json({
+                success: false,
+                message: "Workout storage is temporarily unavailable; retry the request"
+            });
+        }
+
         return res.status(500).json({
             success: false,
             message: "Error creating workout",
@@ -78,11 +112,21 @@ exports.createWorkout = async (req, res) => {
 
 // GET /api/workouts/public/multi-city
 exports.getPublicMultiCity = async (_req, res) => {
+    const startedAt = performance.now();
     try {
         const workouts = await WorkoutLog.aggregate([
             {
                 $match: {
-                    city: { $type: "string", $ne: "" }
+                    city: { $type: "string" }
+                }
+            },
+            { $sort: { userId: 1, date: 1 } },
+            {
+                $project: {
+                    _id: 0,
+                    userId: 1,
+                    city: 1,
+                    date: 1
                 }
             },
             {
@@ -90,28 +134,41 @@ exports.getPublicMultiCity = async (_req, res) => {
                     from: User.collection.name,
                     localField: "userId",
                     foreignField: "_id",
+                    pipeline: [
+                        { $match: { role: "athlete" } },
+                        { $project: { _id: 1 } }
+                    ],
                     as: "athlete"
                 }
             },
-            { $unwind: "$athlete" },
-            { $match: { "athlete.role": "athlete" } },
+            { $match: { "athlete.0": { $exists: true } } },
             {
                 $project: {
+                    _id: 0,
                     userId: 1,
                     city: 1,
                     date: 1
                 }
-            },
-            { $sort: { userId: 1, date: 1, _id: 1 } }
-        ]);
+            }
+        ])
+            .hint({ userId: 1, date: 1, city: 1 })
+            .exec();
         const data = findMultiCityPairs(workouts);
 
+        res.set(
+            "Server-Timing",
+            `multi-city;dur=${(performance.now() - startedAt).toFixed(2)}`
+        );
         return res.status(200).json({
             success: true,
             count: data.length,
             data
         });
     } catch (error) {
+        res.set(
+            "Server-Timing",
+            `multi-city;dur=${(performance.now() - startedAt).toFixed(2)}`
+        );
         return res.status(500).json({
             success: false,
             message: "Error retrieving multi-city workout pairs",

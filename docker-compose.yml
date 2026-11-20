@@ -104,6 +104,29 @@ services:
       mongo-config-2: { condition: service_healthy }
       mongo-config-3: { condition: service_healthy }
 
+  mongos-2:
+    image: mongo:latest
+    restart: unless-stopped
+    command:
+      - mongos
+      - --configdb
+      - cfgRS/mongo-config-1:27017,mongo-config-2:27017,mongo-config-3:27017
+      - --bind_ip_all
+      - --port
+      - "27017"
+    networks: ["fitpulse"]
+    ports: ["127.0.0.1:27031:27017"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand({ping: 1}).ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    depends_on:
+      replica-init: { condition: service_completed_successfully }
+      mongo-config-1: { condition: service_healthy }
+      mongo-config-2: { condition: service_healthy }
+      mongo-config-3: { condition: service_healthy }
+
   cluster-init:
     image: mongo:latest
     restart: "no"

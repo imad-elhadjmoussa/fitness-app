@@ -23,6 +23,11 @@ const workoutLogSchema = new mongoose.Schema(
             required: true
         },
 
+        city: {
+            type: String,
+            trim: true
+        },
+
         // Optional GPS information
         gpsRoute: {
             type: mongoose.Schema.Types.Mixed,
@@ -56,5 +61,14 @@ const workoutLogSchema = new mongoose.Schema(
 
 // Index for retrieving recent workouts per user
 workoutLogSchema.index({ userId: 1, date: -1 });
+
+// Covers the multi-city scan while keeping large optional workout fields out of it.
+workoutLogSchema.index(
+    { userId: 1, date: 1, city: 1 },
+    {
+        name: "multi_city_user_date_city",
+        partialFilterExpression: { city: { $type: "string" } }
+    }
+);
 
 module.exports = mongoose.model("WorkoutLog", workoutLogSchema);

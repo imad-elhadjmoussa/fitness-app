@@ -10,7 +10,11 @@ const connectDB = async () => {
             );
         }
 
-        await mongoose.connect(uri);
+        await mongoose.connect(uri, {
+            retryWrites: true,
+            writeConcern: { w: "majority" },
+            serverSelectionTimeoutMS: 5000
+        });
 
         console.log("MongoDB connected successfully");
     } catch (error) {
