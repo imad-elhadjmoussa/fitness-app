@@ -1,63 +1,88 @@
 import { useMemo } from "react"
 import { useRole } from "@/context/RoleContext"
+import { useAuth } from "@/context/AuthContext"
 import { useCalories } from "@/hooks/useCalories"
-import { CaloriesChart } from "@/components/CaloriesChart"
+import { CaloriesChart, fillDailySeries } from "@/components/CaloriesChart"
 import { ClientSelector } from "@/components/ClientSelector"
 import { DataState } from "@/components/DataState"
 import { KpiCard } from "@/components/KpiCard"
-import { ATHLETE_USER_ID } from "@/lib/roles"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 
-function last14DayRange(): { from: string; to: string } {
-  const to = new Date("2026-11-19T00:00:00Z")
-  const from = new Date(to)
-  from.setUTCDate(from.getUTCDate() - 13)
-  const fmt = (d: Date) => d.toISOString().slice(0, 10)
-  return { from: fmt(from), to: fmt(to) }
+function currentMonthRange(): { from: string; to: string; label: string } {
+  const now = new Date()
+  const fromDate = new Date(now.getFullYear(), now.getMonth(), 1)
+  const toDate = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+  const fmt = (d: Date) => {
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, "0")
+    const day = String(d.getDate()).padStart(2, "0")
+    return `${y}-${m}-${day}`
+  }
+  const label = now.toLocaleDateString(undefined, {
+    month: "long",
+    year: "numeric",
+  })
+  return { from: fmt(fromDate), to: fmt(toDate), label }
 }
 
 export function CaloriesPage() {
   const { role, currentUserId } = useRole()
-  const userId = role === "athlete" ? ATHLETE_USER_ID : currentUserId
-  const range = useMemo(() => last14DayRange(), [])
+  const { user } = useAuth()
+  const userId = role === "athlete" ? user?._id || "" : currentUserId
+  const range = useMemo(() => currentMonthRange(), [])
   const { data, isLoading, isError, error, refetch } = useCalories(
     userId,
     range.from,
     range.to
   )
 
+  const monthSeries = useMemo(
+    () => fillDailySeries(data ?? [], range.from, range.to, userId),
+    [data, range.from, range.to, userId]
+  )
+
   const kpis = useMemo(() => {
-    const rows = data ?? []
-    const total = rows.reduce((sum, r) => sum + r.totalCalories, 0)
-    const avg = rows.length ? Math.round(total / rows.length) : 0
-    const best = rows.reduce(
-      (acc, r) =>
-        r.totalCalories > acc.totalCalories ? r : acc,
-      rows[0] ?? { day: "—", totalCalories: 0, userId }
+    const activeDays = monthSeries.filter((r) => r.totalCalories > 0)
+    const total = monthSeries.reduce((sum, r) => sum + r.totalCalories, 0)
+    const avg = activeDays.length
+      ? Math.round(total / activeDays.length)
+      : 0
+    const best = monthSeries.reduce(
+      (acc, r) => (r.totalCalories > acc.totalCalories ? r : acc),
+      monthSeries[0] ?? { day: "—", totalCalories: 0, userId }
     )
-    return { total, avg, best }
-  }, [data, userId])
+    return {
+      total,
+      avg,
+      best,
+      activeDays: activeDays.length,
+      daysInMonth: monthSeries.length,
+    }
+  }, [monthSeries, userId])
+
+  const hasAnyBurn = kpis.total > 0
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
+    <div className="page-stack">
+      <header className="page-header">
         <div>
-          <h1 className="text-xl font-semibold tracking-tight">Calories</h1>
-          <p className="text-sm text-muted-foreground">
-            14-day calorie burn{role === "coach" ? " for the selected client" : ""}.
+          <p className="eyebrow">Analytics</p>
+          <h1 className="page-title">Calories</h1>
+          <p className="page-subtitle">
+            Monthly calorie burn for {range.label}
+            {role === "coach" ? " · selected client" : ""}.
           </p>
         </div>
         {role === "coach" ? <ClientSelector /> : null}
-      </div>
+      </header>
 
       <DataState
         isLoading={isLoading}
         isError={isError}
         error={error}
         onRetry={() => void refetch()}
-        isEmpty={!data?.length}
-        emptyMessage="No calorie data for this range."
+        isEmpty={false}
         loadingFallback={
           <div className="space-y-3">
             <div className="grid gap-3 sm:grid-cols-3">
@@ -70,21 +95,47 @@ export function CaloriesPage() {
         }
       >
         <div className="grid gap-3 sm:grid-cols-3">
-          <KpiCard title="14-day total" value={`${kpis.total} kcal`} />
-          <KpiCard title="Daily average" value={`${kpis.avg} kcal`} />
+          <KpiCard
+            title="Month total"
+            value={`${kpis.total.toLocaleString()} kcal`}
+            hint={`${kpis.activeDays} active day${kpis.activeDays === 1 ? "" : "s"}`}
+          />
+          <KpiCard
+            title="Avg / active day"
+            value={`${kpis.avg.toLocaleString()} kcal`}
+            hint={`across ${kpis.daysInMonth} days`}
+          />
           <KpiCard
             title="Best day"
-            value={`${kpis.best.totalCalories} kcal`}
-            hint={kpis.best.day}
+            value={
+              hasAnyBurn
+                ? `${kpis.best.totalCalories.toLocaleString()} kcal`
+                : "—"
+            }
+            hint={hasAnyBurn ? kpis.best.day : "No sessions yet"}
           />
         </div>
 
-        <Card>
+        <Card className="surface-card">
           <CardHeader>
             <CardTitle>Daily burn</CardTitle>
+            <CardDescription>
+              Full {range.label} calendar · empty days stay at 0 so bar width
+              stays consistent
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <CaloriesChart data={data ?? []} />
+            <CaloriesChart
+              data={data ?? []}
+              from={range.from}
+              to={range.to}
+            />
+            {!hasAnyBurn ? (
+              <p className="mt-3 text-center text-sm text-muted-foreground">
+                No calories logged this month yet. Log a workout with calories to
+                see activity here.
+              </p>
+            ) : null}
           </CardContent>
         </Card>
       </DataState>

@@ -1,27 +1,21 @@
 import { useMemo } from "react"
-import { useRole } from "@/context/RoleContext"
+import { useAuth } from "@/context/AuthContext"
 import { useLeaderboard } from "@/hooks/useLeaderboard"
-import { useUsers } from "@/hooks/useUsers"
 import { DataState } from "@/components/DataState"
 import { KpiCard } from "@/components/KpiCard"
 import { StreakTable } from "@/components/StreakTable"
-import { ATHLETE_USER_ID } from "@/lib/roles"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { USE_MOCK } from "@/api"
 
 export function StreakPage() {
-  const { currentUserId } = useRole()
-  const userId = ATHLETE_USER_ID
+  const { user } = useAuth()
+  const userId = user?._id || ""
   const leaderboard = useLeaderboard()
-  const users = useUsers()
-
-  const isLoading = leaderboard.isLoading || users.isLoading
-  const isError = leaderboard.isError || users.isError
-  const error = leaderboard.error ?? users.error
 
   const me = useMemo(
-    () => users.data?.find((u) => u._id === userId),
-    [users.data, userId]
+    () => (leaderboard.data ?? []).find((r) => r.userId === userId),
+    [leaderboard.data, userId]
   )
 
   const rank = useMemo(() => {
@@ -30,22 +24,24 @@ export function StreakPage() {
   }, [leaderboard.data, userId])
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">Streak</h1>
-        <p className="text-sm text-muted-foreground">
-          Your streak and the leaderboard.
-        </p>
-      </div>
+    <div className="page-stack">
+      <header className="page-header">
+        <div>
+          <p className="eyebrow">Consistency</p>
+          <h1 className="page-title">Streak</h1>
+          <p className="page-subtitle">
+            {USE_MOCK
+              ? "Your streak and the leaderboard."
+              : "Leaderboard lists athletes. Full streak metrics arrive when the analytics API is ready."}
+          </p>
+        </div>
+      </header>
 
       <DataState
-        isLoading={isLoading}
-        isError={isError}
-        error={error}
-        onRetry={() => {
-          void leaderboard.refetch()
-          void users.refetch()
-        }}
+        isLoading={leaderboard.isLoading}
+        isError={leaderboard.isError}
+        error={leaderboard.error}
+        onRetry={() => void leaderboard.refetch()}
         isEmpty={!leaderboard.data?.length}
         emptyMessage="No streak data available."
         loadingFallback={
@@ -60,27 +56,19 @@ export function StreakPage() {
         }
       >
         <div className="grid gap-3 sm:grid-cols-3">
-          <KpiCard
-            title="Current streak"
-            value={me?.streak.current ?? "—"}
-            hint="days"
-          />
-          <KpiCard
-            title="Longest streak"
-            value={me?.streak.longest ?? "—"}
-            hint="days"
-          />
+          <KpiCard title="Current streak" value={me?.current ?? "—"} hint="days" />
+          <KpiCard title="Longest streak" value={me?.longest ?? "—"} hint="days" />
           <KpiCard title="Rank" value={`#${rank}`} />
         </div>
 
-        <Card>
+        <Card className="surface-card">
           <CardHeader>
             <CardTitle>Leaderboard</CardTitle>
           </CardHeader>
           <CardContent>
             <StreakTable
               rows={leaderboard.data ?? []}
-              highlightUserId={currentUserId || userId}
+              highlightUserId={userId}
             />
           </CardContent>
         </Card>

@@ -24,13 +24,16 @@ export function JobsPage() {
   const { data, isLoading, isError, error, refetch } = useJobs()
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">Jobs</h1>
-        <p className="text-sm text-muted-foreground">
-          Scheduler jobs that refresh analytics collections.
-        </p>
-      </div>
+    <div className="page-stack">
+      <header className="page-header">
+        <div>
+          <p className="eyebrow">Ops</p>
+          <h1 className="page-title">Jobs</h1>
+          <p className="page-subtitle">
+            Scheduler jobs that refresh analytics collections (mock until the jobs API ships).
+          </p>
+        </div>
+      </header>
 
       <DataState
         isLoading={isLoading}

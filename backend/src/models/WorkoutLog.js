@@ -45,14 +45,7 @@ const workoutLogSchema = new mongoose.Schema(
         deviceInfo: {
             type: mongoose.Schema.Types.Mixed,
             default: undefined
-        },
-
-        location: {
-            city: {
-                type: String,
-                trim: true
-            }
-        },
+        }
 
     },
     {

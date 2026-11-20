@@ -8,7 +8,7 @@ const rootDir = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "")
-  const apiTarget = env.VITE_API_URL || "http://localhost:5000"
+  const apiTarget = env.VITE_API_URL || "http://localhost:3000"
 
   return {
     plugins: [react(), tailwindcss()],

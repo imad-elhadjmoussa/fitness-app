@@ -1,6 +1,7 @@
 import { useUsers } from "@/hooks/useUsers"
 import { useSchemaVariety } from "@/hooks/useSchemaVariety"
 import { DataState } from "@/components/DataState"
+import { displayName } from "@/lib/mappers"
 import {
   Table,
   TableBody,
@@ -20,17 +21,22 @@ export function SchemaVarietyPage() {
   const schema = useSchemaVariety()
   const users = useUsers()
 
-  const nameOf = (id: string) =>
-    users.data?.find((u) => u._id === id)?.name ?? id
+  const nameOf = (id: string) => {
+    const u = users.data?.find((x) => x._id === id)
+    return u ? displayName(u) : id
+  }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">Schema variety</h1>
-        <p className="text-sm text-muted-foreground">
-          Optional GPS, heart-rate and photo fields differ by device type.
-        </p>
-      </div>
+    <div className="page-stack">
+      <header className="page-header">
+        <div>
+          <p className="eyebrow">Analyst</p>
+          <h1 className="page-title">Schema variety</h1>
+          <p className="page-subtitle">
+            Optional GPS, heart-rate and photo fields differ by device type.
+          </p>
+        </div>
+      </header>
 
       <DataState
         isLoading={schema.isLoading || users.isLoading}
@@ -70,14 +76,21 @@ export function SchemaVarietyPage() {
                     <TableCell className="capitalize">{a.type}</TableCell>
                     <TableCell>{a.deviceType}</TableCell>
                     <TableCell>{a.city}</TableCell>
-                    <TableCell>{mark(Boolean(a.gps))}</TableCell>
+                    <TableCell>
+                      {mark(Boolean(a.gps || a.gpsRoute))}
+                    </TableCell>
                     <TableCell>
                       {mark(
-                        Array.isArray(a.hrSeries) && a.hrSeries.length > 0
+                        Boolean(a.heartRate) ||
+                          (Array.isArray(a.hrSeries) && a.hrSeries.length > 0)
                       )}
                     </TableCell>
                     <TableCell>
-                      {mark(Array.isArray(a.photos) && a.photos.length > 0)}
+                      {mark(
+                        (Array.isArray(a.photos) && a.photos.length > 0) ||
+                          (Array.isArray(a.photoObjects) &&
+                            a.photoObjects.length > 0)
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

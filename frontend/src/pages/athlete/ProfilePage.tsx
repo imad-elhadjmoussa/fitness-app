@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react"
+import { useEffect, useState, type FormEvent } from "react"
 import { toast } from "sonner"
-import { useUsers } from "@/hooks/useUsers"
+import { useAuth } from "@/context/AuthContext"
 import { useUpdateUser } from "@/hooks/useUpdateUser"
-import { DataState } from "@/components/DataState"
-import { ATHLETE_USER_ID } from "@/lib/roles"
+import { FITNESS_GOALS } from "@/lib/roles"
+import { goalLabel } from "@/lib/mappers"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -15,31 +15,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Skeleton } from "@/components/ui/skeleton"
-
-const GOALS = ["Marathon prep", "Lose weight", "Build muscle", "Stay active"]
 
 export function ProfilePage() {
-  const userId = ATHLETE_USER_ID
-  const { data, isLoading, isError, error, refetch } = useUsers()
+  const { user } = useAuth()
   const update = useUpdateUser()
 
-  const user = useMemo(
-    () => data?.find((u) => u._id === userId),
-    [data, userId]
-  )
-
-  const [goal, setGoal] = useState("")
-  const [weightKg, setWeightKg] = useState("")
-  const [email, setEmail] = useState("")
+  const [fitnessGoal, setFitnessGoal] = useState("general_fitness")
+  const [weight, setWeight] = useState("")
   const [phone, setPhone] = useState("")
+  const [address, setAddress] = useState("")
 
   useEffect(() => {
     if (!user) return
-    setGoal(user.goal)
-    setWeightKg(String(user.weightKg))
-    setEmail(user.contact.email)
-    setPhone(user.contact.phone)
+    setFitnessGoal(user.profile?.fitnessGoal || "general_fitness")
+    setWeight(
+      user.profile?.weight !== undefined ? String(user.profile.weight) : ""
+    )
+    setPhone(user.profile?.contact?.phone || "")
+    setAddress(user.profile?.contact?.address || "")
   }, [user])
 
   const onSubmit = (e: FormEvent) => {
@@ -47,21 +40,29 @@ export function ProfilePage() {
     if (!user) return
 
     const patch: {
-      goal?: string
-      weightKg?: number
-      contact?: { email?: string; phone?: string }
+      fitnessGoal?: string
+      weight?: number
+      contact?: { phone?: string; address?: string }
     } = {}
 
-    if (goal !== user.goal) patch.goal = goal
-
-    const nextWeight = Number(weightKg)
-    if (!Number.isNaN(nextWeight) && nextWeight !== user.weightKg) {
-      patch.weightKg = nextWeight
+    if (fitnessGoal !== (user.profile?.fitnessGoal || "general_fitness")) {
+      patch.fitnessGoal = fitnessGoal
     }
 
-    const contact: { email?: string; phone?: string } = {}
-    if (email !== user.contact.email) contact.email = email
-    if (phone !== user.contact.phone) contact.phone = phone
+    const nextWeight = Number(weight)
+    if (
+      weight !== "" &&
+      !Number.isNaN(nextWeight) &&
+      nextWeight !== user.profile?.weight
+    ) {
+      patch.weight = nextWeight
+    }
+
+    const contact: { phone?: string; address?: string } = {}
+    if (phone !== (user.profile?.contact?.phone || "")) contact.phone = phone
+    if (address !== (user.profile?.contact?.address || "")) {
+      contact.address = address
+    }
     if (Object.keys(contact).length) patch.contact = contact
 
     if (!Object.keys(patch).length) {
@@ -70,7 +71,7 @@ export function ProfilePage() {
     }
 
     update.mutate(
-      { id: userId, patch },
+      { id: user._id, patch },
       {
         onSuccess: () => toast.success("Profile updated"),
         onError: (err) =>
@@ -79,86 +80,87 @@ export function ProfilePage() {
     )
   }
 
+  if (!user) return null
+
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">Profile</h1>
-        <p className="text-sm text-muted-foreground">
-          Update goal, weight and contact. Only changed fields are sent.
-        </p>
-      </div>
+    <div className="page-stack">
+      <header className="page-header">
+        <div>
+          <p className="eyebrow">Account</p>
+          <h1 className="page-title">Profile</h1>
+          <p className="page-subtitle">
+            Update goal, weight and contact. Only changed fields are sent to the API.
+          </p>
+        </div>
+      </header>
 
-      <DataState
-        isLoading={isLoading}
-        isError={isError}
-        error={error}
-        onRetry={() => void refetch()}
-        isEmpty={!user}
-        emptyMessage="User not found."
-        loadingFallback={<Skeleton className="h-80 w-full max-w-lg" />}
-      >
-        <Card className="max-w-lg">
-          <CardHeader>
-            <CardTitle>{user?.name ?? "Profile"}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form className="space-y-4" onSubmit={onSubmit}>
-              <div className="space-y-2">
-                <Label htmlFor="goal">Goal</Label>
-                <Select value={goal} onValueChange={(v) => v && setGoal(v)}>
-                  <SelectTrigger id="goal" className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {GOALS.map((g) => (
-                      <SelectItem key={g} value={g}>
-                        {g}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+      <Card className="surface-card max-w-lg">
+        <CardHeader>
+          <CardTitle>
+            {user.firstName} {user.lastName}
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">{user.email}</p>
+          <p className="text-xs text-muted-foreground">
+            Current goal: {goalLabel(user.profile?.fitnessGoal)}
+          </p>
+        </CardHeader>
+        <CardContent>
+          <form className="space-y-4" onSubmit={onSubmit}>
+            <div className="space-y-2">
+              <Label>Fitness goal</Label>
+              <Select
+                value={fitnessGoal}
+                onValueChange={(v) => v && setFitnessGoal(v)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FITNESS_GOALS.map((g) => (
+                    <SelectItem key={g.value} value={g.value}>
+                      {g.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="weight">Weight (kg)</Label>
-                <Input
-                  id="weight"
-                  type="number"
-                  min={30}
-                  max={200}
-                  step={0.1}
-                  value={weightKg}
-                  onChange={(e) => setWeightKg(e.target.value)}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="weight">Weight (kg)</Label>
+              <Input
+                id="weight"
+                type="number"
+                min={1}
+                step={0.1}
+                value={weight}
+                onChange={(e) => setWeight(e.target.value)}
+              />
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone</Label>
+              <Input
+                id="phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="address">Address</Label>
+              <Input
+                id="address"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+              />
+            </div>
 
-              <Button type="submit" disabled={update.isPending}>
-                {update.isPending ? "Saving…" : "Save changes"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </DataState>
+            <Button type="submit" disabled={update.isPending}>
+              {update.isPending ? "Saving…" : "Save changes"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
     </div>
   )
 }

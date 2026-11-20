@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query"
 import { getUsers } from "@/api"
 
-export function useUsers() {
+export function useUsers(role?: string) {
   return useQuery({
-    queryKey: ["users"],
-    queryFn: getUsers,
+    queryKey: ["users", role ?? "all"],
+    queryFn: () => getUsers(role),
   })
 }

@@ -30,17 +30,22 @@ All endpoints use the `/api` prefix.
 - Successful responses use a JSON object containing `success`, and usually `message` and/or `data`.
 - Error responses contain `success: false` and a `message`.
 
-> Authentication is not yet implemented in the API described here. Do not treat `userId` in a request as proof of identity. Before production, add authentication and authorization so users can only access and update permitted accounts.
+> **Auth (added):** send `Authorization: Bearer <token>` on protected routes.
+> Tokens are issued by `POST /api/auth/login` and by `POST /api/users` (register now returns `{ token, user }`).
+> Use `GET /api/auth/me` to restore a session. Athletes may only mutate their own profile/workouts.
 
 ## 3. Endpoint summary
 
 | Method | Endpoint | Purpose |
 |---|---|---|
-| `POST` | `/api/users` | Create a user |
-| `GET` | `/api/users/:userId` | Retrieve a user's profile |
-| `PATCH` | `/api/users/:userId/profile` | Partially update a user's profile |
-| `POST` | `/api/workouts` | Create a workout log |
-| `GET` | `/api/workouts/user/:userId/recent` | Retrieve the latest 20 workout logs for a user |
+| `POST` | `/api/auth/login` | Login → `{ token, user }` |
+| `GET` | `/api/auth/me` | Current user (Bearer token) |
+| `POST` | `/api/users` | Register → `{ token, user }` |
+| `GET` | `/api/users` | List users (auth) |
+| `GET` | `/api/users/:userId` | Retrieve a user's profile (auth) |
+| `PATCH` | `/api/users/:userId/profile` | Partially update a user's profile (auth) |
+| `POST` | `/api/workouts` | Create a workout log (auth) |
+| `GET` | `/api/workouts/user/:userId/recent` | Retrieve the latest 20 workout logs for a user (auth) |
 
 ---
 

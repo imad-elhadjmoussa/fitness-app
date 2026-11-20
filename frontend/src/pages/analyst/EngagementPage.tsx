@@ -75,13 +75,17 @@ export function EngagementPage() {
   }))
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">Engagement</h1>
-        <p className="text-sm text-muted-foreground">
-          Active users and weekly workout activity.
-        </p>
-      </div>
+    <div className="page-stack">
+      <header className="page-header">
+        <div>
+          <p className="eyebrow">Analyst</p>
+          <h1 className="page-title">Engagement</h1>
+          <p className="page-subtitle">
+            Active users and weekly workout activity. Full engagement series
+            requires the analytics API or mock mode.
+          </p>
+        </div>
+      </header>
 
       <DataState
         isLoading={isLoading}

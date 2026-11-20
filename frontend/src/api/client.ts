@@ -1,3 +1,6 @@
+import { getToken, clearAuthStorage } from "@/lib/auth-storage"
+import type { ApiEnvelope } from "@/types"
+
 const API_URL = (import.meta.env.VITE_API_URL as string | undefined) ?? ""
 
 export class ApiError extends Error {
@@ -12,31 +15,66 @@ export class ApiError extends Error {
 
 export async function apiFetch<T>(
   path: string,
-  init?: RequestInit
+  init?: RequestInit & { auth?: boolean }
 ): Promise<T> {
-  const url = `${API_URL}${path}`
-  const res = await fetch(url, {
+  const { auth = true, headers, ...rest } = init ?? {}
+  const token = getToken()
+
+  const res = await fetch(`${API_URL}${path}`, {
+    ...rest,
     headers: {
       "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
+      ...(auth && token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(headers ?? {}),
     },
-    ...init,
   })
 
-  if (!res.ok) {
-    let message = `Request failed (${res.status})`
+  let body: unknown = null
+  const text = await res.text()
+  if (text) {
     try {
-      const body = (await res.json()) as { message?: string; error?: string }
-      message = body.message ?? body.error ?? message
+      body = JSON.parse(text)
     } catch {
-      // ignore parse errors
+      body = text
     }
+  }
+
+  if (res.status === 401) {
+    clearAuthStorage()
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("fitpulse:logout"))
+    }
+  }
+
+  if (!res.ok) {
+    const message =
+      typeof body === "object" &&
+      body &&
+      "message" in body &&
+      typeof (body as { message: unknown }).message === "string"
+        ? (body as { message: string }).message
+        : `Request failed (${res.status})`
     throw new ApiError(message, res.status)
   }
 
-  if (res.status === 204) {
-    return undefined as T
+  return body as T
+}
+
+/** Unwrap `{ success, data }` envelopes from the FitPulse API */
+export async function apiData<T>(
+  path: string,
+  init?: RequestInit & { auth?: boolean }
+): Promise<T> {
+  const envelope = await apiFetch<ApiEnvelope<T> | T>(path, init)
+
+  if (
+    envelope &&
+    typeof envelope === "object" &&
+    "data" in envelope &&
+    "success" in envelope
+  ) {
+    return (envelope as ApiEnvelope<T>).data
   }
 
-  return (await res.json()) as T
+  return envelope as T
 }

@@ -1,16 +1,27 @@
 # FitPulse Frontend
 
-React dashboard for the FitPulse fitness-tracking platform (M2 ILSI Big Data). Reads live from the Express API, or from local mock JSON when the backend is not ready.
+React dashboard for FitPulse, wired to the Express + MongoDB API.
 
 ## Stack
 
 - React + Vite + TypeScript
 - React Router, TanStack Query
 - Tailwind CSS + shadcn/ui
-- Recharts (via shadcn chart)
-- Sonner toasts
+- JWT auth (Bearer token)
+- Recharts + Sonner
 
-## Run
+## Run with the backend
+
+Terminal 1 — API (port 3000):
+
+```bash
+cd fitness-app/backend
+npm install
+# ensure MongoDB is running and .env has MONGODB_URI
+npm run dev
+```
+
+Terminal 2 — web:
 
 ```bash
 cd fitness-app/frontend
@@ -18,35 +29,29 @@ npm install
 npm run dev
 ```
 
-Open the URL Vite prints (usually http://localhost:5173).
-
-## Mock vs real API
-
-Defaults (see `.env`):
+Frontend defaults (`.env`):
 
 ```
-VITE_USE_MOCK=true
-VITE_API_URL=http://localhost:5000
+VITE_USE_MOCK=false
+VITE_API_URL=http://localhost:3000
 ```
 
-| Mode | Config |
-|------|--------|
-| Mock data (~300 ms delay) | `VITE_USE_MOCK=true` |
-| Live backend | `VITE_USE_MOCK=false` and a reachable `VITE_API_URL` |
+1. Open the app → **Create account** (athlete / coach / analyst).
+2. Sign in.
+3. Athletes can **Log workout**, view timeline, update profile.
+4. Coaches see clients and client timelines.
+5. Analysts see schema variety from live workouts; engagement / multi-city / jobs need mock or future APIs.
 
-No code changes are required to switch. Copy `.env.example` to `.env` if needed. The Vite dev server proxies `/api` to `VITE_API_URL` to avoid CORS during local development.
+## Mock mode
 
-## Roles
+Set `VITE_USE_MOCK=true` to use local JSON without the API (any login works).
 
-Use the sidebar select (no real auth):
+## Auth endpoints used
 
-- **Athlete** — timeline, calories, streak, profile (user `u1`)
-- **Coach** — clients, client timeline, client calories
-- **Analyst / Admin** — engagement, multi-city, schema variety, jobs
-
-## Build
-
-```bash
-npm run build
-npm run preview
-```
+| Action | Endpoint |
+|--------|----------|
+| Register | `POST /api/users` |
+| Login | `POST /api/auth/login` |
+| Session | `GET /api/auth/me` |
+| Profile | `GET/PATCH /api/users/:id` |
+| Workouts | `POST /api/workouts`, `GET /api/workouts/user/:id/recent` |

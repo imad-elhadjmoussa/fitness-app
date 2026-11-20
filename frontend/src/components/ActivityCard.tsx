@@ -1,5 +1,12 @@
 import { useState } from "react"
-import { ChevronDown, ChevronRight, Clock, Flame, MapPin, Watch } from "lucide-react"
+import {
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  Flame,
+  MapPin,
+  Watch,
+} from "lucide-react"
 import type { Activity } from "@/types"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -24,39 +31,30 @@ function formatWhen(iso: string): string {
   }
 }
 
-const KNOWN = new Set([
-  "_id",
-  "userId",
-  "type",
-  "startedAt",
-  "durationSec",
-  "calories",
-  "city",
-  "deviceType",
-  "schemaVersion",
-  "gps",
-  "hrSeries",
-  "photos",
-])
-
 interface ActivityCardProps {
   activity: Activity
 }
 
 export function ActivityCard({ activity }: ActivityCardProps) {
   const [open, setOpen] = useState(false)
-  const hasGps = Boolean(activity.gps)
-  const hasHr = Array.isArray(activity.hrSeries) && activity.hrSeries.length > 0
-  const photoCount = Array.isArray(activity.photos) ? activity.photos.length : 0
+  const hasGps = Boolean(activity.gps || activity.gpsRoute)
+  const hasHr =
+    (Array.isArray(activity.hrSeries) && activity.hrSeries.length > 0) ||
+    Boolean(activity.heartRate)
+  const photoCount = Array.isArray(activity.photos)
+    ? activity.photos.length
+    : Array.isArray(activity.photoObjects)
+      ? activity.photoObjects.length
+      : 0
   const durationOnly = !hasGps && !hasHr && photoCount === 0
 
-  const extras = Object.keys(activity).filter((k) => !KNOWN.has(k))
-
   return (
-    <Card size="sm">
+    <Card className="surface-card" size="sm">
       <CardHeader className="flex flex-row items-start justify-between gap-2">
         <div>
-          <CardTitle className="capitalize">{activity.type}</CardTitle>
+          <CardTitle className="font-display capitalize">
+            {activity.type}
+          </CardTitle>
           <p className="mt-0.5 text-xs text-muted-foreground">
             {formatWhen(activity.startedAt)}
           </p>
@@ -82,17 +80,34 @@ export function ActivityCard({ activity }: ActivityCardProps) {
           </span>
           <span className="inline-flex items-center gap-1">
             <Flame className="size-3.5" />
-            {activity.calories} kcal
+            {activity.calories ? `${activity.calories} kcal` : "—"}
           </span>
           <span className="inline-flex items-center gap-1">
             <MapPin className="size-3.5" />
-            {activity.city}
+            {activity.city || "—"}
           </span>
           <span className="inline-flex items-center gap-1">
             <Watch className="size-3.5" />
-            {activity.deviceType}
+            {activity.deviceType || "—"}
           </span>
         </div>
+
+        {activity.heartRate?.average ? (
+          <p className="text-xs text-muted-foreground">
+            HR avg {activity.heartRate.average}
+            {activity.heartRate.maximum
+              ? ` · max ${activity.heartRate.maximum}`
+              : ""}{" "}
+            bpm
+          </p>
+        ) : null}
+
+        {activity.gpsRoute?.distance ? (
+          <p className="text-xs text-muted-foreground">
+            Distance {activity.gpsRoute.distance}{" "}
+            {activity.gpsRoute.unit || "km"}
+          </p>
+        ) : null}
 
         <div>
           <Button
@@ -107,12 +122,9 @@ export function ActivityCard({ activity }: ActivityCardProps) {
               <ChevronRight data-icon="inline-start" />
             )}
             Raw document
-            {extras.length > 0 ? (
-              <span className="text-xs">({extras.length} extra)</span>
-            ) : null}
           </Button>
           {open ? (
-            <pre className="mt-2 max-h-48 overflow-auto rounded-lg bg-muted p-3 text-xs">
+            <pre className="mt-2 max-h-48 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs">
               {JSON.stringify(activity, null, 2)}
             </pre>
           ) : null}

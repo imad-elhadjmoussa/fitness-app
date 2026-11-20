@@ -6,19 +6,31 @@ export const ROLE_LABELS: Record<Role, string> = {
   analyst: "Analyst / Admin",
 }
 
-export const ROLE_DISPLAY_NAME: Record<Role, string> = {
-  athlete: "Amine B.",
-  coach: "Coach Meriem",
-  analyst: "Admin",
-}
+export const FITNESS_GOALS = [
+  { value: "weight_loss", label: "Weight loss" },
+  { value: "muscle_gain", label: "Muscle gain" },
+  { value: "maintenance", label: "Maintenance" },
+  { value: "endurance", label: "Endurance" },
+  { value: "general_fitness", label: "General fitness" },
+] as const
 
-export const ATHLETE_USER_ID = "u1"
+export const WORKOUT_TYPES = [
+  "running",
+  "cycling",
+  "weightlifting",
+  "yoga",
+  "hiit",
+  "walking",
+  "swimming",
+  "other",
+] as const
 
 export type NavItem = { to: string; label: string }
 
 export const ROLE_NAV: Record<Role, NavItem[]> = {
   athlete: [
     { to: "/timeline", label: "Timeline" },
+    { to: "/workouts/new", label: "Log workout" },
     { to: "/calories", label: "Calories" },
     { to: "/streak", label: "Streak" },
     { to: "/profile", label: "Profile" },

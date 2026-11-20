@@ -1,6 +1,8 @@
 import { useUsers } from "@/hooks/useUsers"
 import { useMultiCity } from "@/hooks/useMultiCity"
 import { DataState } from "@/components/DataState"
+import { displayName } from "@/lib/mappers"
+import { USE_MOCK } from "@/api"
 import {
   Table,
   TableBody,
@@ -29,17 +31,25 @@ export function MultiCityPage() {
   const multi = useMultiCity()
   const users = useUsers()
 
-  const nameOf = (id: string) =>
-    users.data?.find((u) => u._id === id)?.name ?? id
+  const nameOf = (id: string) => {
+    const u = users.data?.find((x) => x._id === id)
+    return u ? displayName(u) : id
+  }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">Multi-city</h1>
-        <p className="text-sm text-muted-foreground">
-          Users with workouts in two different cities within 24 hours.
-        </p>
-      </div>
+    <div className="page-stack">
+      <header className="page-header">
+        <div>
+          <p className="eyebrow">Analyst</p>
+          <h1 className="page-title">Multi-city</h1>
+          <p className="page-subtitle">
+            Users with workouts in two different cities within 24 hours.
+            {!USE_MOCK
+              ? " Live analytics endpoint is not available yet — enable mock mode to preview."
+              : ""}
+          </p>
+        </div>
+      </header>
 
       <DataState
         isLoading={multi.isLoading || users.isLoading}

@@ -1,9 +1,22 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 
+function signToken(userId) {
+    const secret = process.env.JWT_SECRET || "fitpulse-dev-secret-change-me";
+    const expiresIn = process.env.JWT_EXPIRES_IN || "7d";
+    return jwt.sign({ id: userId }, secret, { expiresIn });
+}
+
+function sanitize(user) {
+    const obj = user.toObject ? user.toObject() : { ...user };
+    delete obj.password;
+    return obj;
+}
+
 // ======================================
-// CREATE USER
+// CREATE USER (register)
 // POST /api/users
 // ======================================
 
@@ -14,10 +27,10 @@ exports.createUser = async (req, res) => {
             lastName,
             email,
             password,
-            profile
+            profile,
+            role
         } = req.body;
 
-        // Required field validation
         if (!firstName || !lastName || !email || !password) {
             return res.status(400).json({
                 success: false,
@@ -25,7 +38,6 @@ exports.createUser = async (req, res) => {
             });
         }
 
-        // Check if email already exists
         const existingUser = await User.findOne({
             email: email.toLowerCase().trim()
         });
@@ -37,30 +49,33 @@ exports.createUser = async (req, res) => {
             });
         }
 
-        // Hash password
+        const allowedRoles = ["athlete", "coach", "analyst"];
+        const safeRole =
+            role && allowedRoles.includes(role) ? role : "athlete";
+
         const hashedPassword = await bcrypt.hash(password, 12);
 
-        // Create user
         const user = await User.create({
             firstName,
             lastName,
             email,
             password: hashedPassword,
+            role: safeRole,
             profile
         });
 
-        // Return user without password
-        const userResponse = user.toObject();
-        delete userResponse.password;
+        const token = signToken(user._id.toString());
+        const userResponse = sanitize(user);
 
         return res.status(201).json({
             success: true,
             message: "User created successfully",
-            data: userResponse
+            data: {
+                token,
+                user: userResponse
+            }
         });
-
     } catch (error) {
-        // Handle duplicate email race conditions
         if (error.code === 11000) {
             return res.status(409).json({
                 success: false,
@@ -76,6 +91,75 @@ exports.createUser = async (req, res) => {
     }
 };
 
+// ======================================
+// LIST USERS
+// GET /api/users
+// ======================================
+
+exports.getUsers = async (req, res) => {
+    try {
+        const filter = {};
+        if (req.query.role) {
+            filter.role = req.query.role;
+        }
+
+        const users = await User.find(filter)
+            .select("-password")
+            .sort({ createdAt: -1 })
+            .lean();
+
+        return res.status(200).json({
+            success: true,
+            count: users.length,
+            data: users
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: "Error retrieving users",
+            error: error.message
+        });
+    }
+};
+
+// ======================================
+// GET USER PROFILE
+// GET /api/users/:userId
+// ======================================
+
+exports.getUser = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        if (!mongoose.isValidObjectId(userId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid user ID"
+            });
+        }
+
+        const user = await User.findById(userId).select("-password");
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: "User retrieved successfully",
+            data: user
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: "Error retrieving user",
+            error: error.message
+        });
+    }
+};
 
 // ======================================
 // UPDATE USER PROFILE
@@ -86,7 +170,6 @@ exports.updateUserProfile = async (req, res) => {
     try {
         const { userId } = req.params;
 
-        // Validate MongoDB ObjectId
         if (!mongoose.isValidObjectId(userId)) {
             return res.status(400).json({
                 success: false,
@@ -94,9 +177,19 @@ exports.updateUserProfile = async (req, res) => {
             });
         }
 
-        const { fitnessGoal, weight, contact } = req.body;
+        // Athletes may only update their own profile
+        if (
+            req.user &&
+            req.user.role === "athlete" &&
+            req.user._id.toString() !== userId
+        ) {
+            return res.status(403).json({
+                success: false,
+                message: "You can only update your own profile"
+            });
+        }
 
-        // Build dynamic update object
+        const { fitnessGoal, weight, contact } = req.body;
         const updates = {};
 
         if (fitnessGoal !== undefined) {
@@ -108,8 +201,11 @@ exports.updateUserProfile = async (req, res) => {
         }
 
         if (contact !== undefined) {
-            if (typeof contact !== "object" || contact === null ||
-                Array.isArray(contact)) {
+            if (
+                typeof contact !== "object" ||
+                contact === null ||
+                Array.isArray(contact)
+            ) {
                 return res.status(400).json({
                     success: false,
                     message: "Contact must be an object"
@@ -136,7 +232,6 @@ exports.updateUserProfile = async (req, res) => {
             }
         }
 
-        // Prevent empty updates
         if (Object.keys(updates).length === 0) {
             return res.status(400).json({
                 success: false,
@@ -144,16 +239,10 @@ exports.updateUserProfile = async (req, res) => {
             });
         }
 
-        // Update only modified fields
         const updatedUser = await User.findByIdAndUpdate(
             userId,
-            {
-                $set: updates
-            },
-            {
-                new: true,
-                runValidators: true
-            }
+            { $set: updates },
+            { new: true, runValidators: true }
         ).select("-password");
 
         if (!updatedUser) {
@@ -168,7 +257,6 @@ exports.updateUserProfile = async (req, res) => {
             message: "Profile updated successfully",
             data: updatedUser
         });
-
     } catch (error) {
         return res.status(500).json({
             success: false,

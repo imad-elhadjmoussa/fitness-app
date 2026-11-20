@@ -6,6 +6,7 @@ import { useUsers } from "@/hooks/useUsers"
 import { useRole } from "@/context/RoleContext"
 import { DataState } from "@/components/DataState"
 import { StatusBadge } from "@/components/StatusBadge"
+import { displayName, goalLabel } from "@/lib/mappers"
 import {
   Table,
   TableBody,
@@ -18,7 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 function rangeLast7(): { from: string; to: string } {
-  const to = new Date("2026-11-19T00:00:00Z")
+  const to = new Date()
   const from = new Date(to)
   from.setUTCDate(from.getUTCDate() - 6)
   return {
@@ -30,31 +31,33 @@ function rangeLast7(): { from: string; to: string } {
 function daysSince(iso?: string): number | null {
   if (!iso) return null
   const then = new Date(iso.includes("T") ? iso : `${iso}T00:00:00Z`)
-  const now = new Date("2026-11-19T12:00:00Z")
-  const diff = now.getTime() - then.getTime()
-  return Math.floor(diff / (1000 * 60 * 60 * 24))
+  const now = new Date()
+  return Math.floor((now.getTime() - then.getTime()) / (1000 * 60 * 60 * 24))
 }
 
 export function ClientsPage() {
   const navigate = useNavigate()
   const { setCurrentUserId } = useRole()
   const usersQuery = useUsers()
-  const users = usersQuery.data ?? []
+  const athletes = useMemo(
+    () => (usersQuery.data ?? []).filter((u) => u.role === "athlete"),
+    [usersQuery.data]
+  )
   const range = useMemo(() => rangeLast7(), [])
 
   const activityQueries = useQueries({
-    queries: users.map((u) => ({
+    queries: athletes.map((u) => ({
       queryKey: ["activities", u._id, 1],
       queryFn: () => getActivities(u._id, 1),
-      enabled: users.length > 0,
+      enabled: athletes.length > 0,
     })),
   })
 
   const calorieQueries = useQueries({
-    queries: users.map((u) => ({
+    queries: athletes.map((u) => ({
       queryKey: ["calories", u._id, range.from, range.to],
       queryFn: () => getCalories(u._id, range.from, range.to),
-      enabled: users.length > 0,
+      enabled: athletes.length > 0,
     })),
   })
 
@@ -68,36 +71,38 @@ export function ClientsPage() {
     activityQueries.some((q) => q.isError) ||
     calorieQueries.some((q) => q.isError)
 
-  const rows = users.map((user, i) => {
+  const rows = athletes.map((user, i) => {
     const lastActivity = activityQueries[i]?.data?.[0]
-    const lastDate =
-      lastActivity?.startedAt ?? user.streak.lastActiveDate ?? undefined
+    const lastDate = lastActivity?.startedAt
     const kcal7 = (calorieQueries[i]?.data ?? []).reduce(
       (sum, d) => sum + d.totalCalories,
       0
     )
     const idle = daysSince(lastDate)
     const status =
-      idle === null || idle > 2 ? ("Needs a nudge" as const) : ("On track" as const)
+      idle === null || idle > 2
+        ? ("Needs a nudge" as const)
+        : ("On track" as const)
 
     return {
       user,
-      lastDate: lastDate
-        ? new Date(lastDate).toLocaleDateString()
-        : "—",
+      lastDate: lastDate ? new Date(lastDate).toLocaleDateString() : "—",
       kcal7,
       status,
     }
   })
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-semibold tracking-tight">Clients</h1>
-        <p className="text-sm text-muted-foreground">
-          Overview of athletes. Click a row to open their timeline.
-        </p>
-      </div>
+    <div className="page-stack">
+      <header className="page-header">
+        <div>
+          <p className="eyebrow">Coach</p>
+          <h1 className="page-title">Clients</h1>
+          <p className="page-subtitle">
+            Overview of athletes. Click a row to open their timeline.
+          </p>
+        </div>
+      </header>
 
       <DataState
         isLoading={isLoading}
@@ -109,10 +114,10 @@ export function ClientsPage() {
           calorieQueries.forEach((q) => void q.refetch())
         }}
         isEmpty={!rows.length}
-        emptyMessage="No clients found."
+        emptyMessage="No athlete clients found. Ask athletes to register with the athlete role."
         loadingFallback={<Skeleton className="h-64 w-full" />}
       >
-        <Card>
+        <Card className="surface-card">
           <CardHeader>
             <CardTitle>All clients</CardTitle>
           </CardHeader>
@@ -122,7 +127,7 @@ export function ClientsPage() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Goal</TableHead>
-                  <TableHead>Streak</TableHead>
+                  <TableHead>Weight</TableHead>
                   <TableHead>Last activity</TableHead>
                   <TableHead>kcal (7d)</TableHead>
                   <TableHead>Status</TableHead>
@@ -138,9 +143,17 @@ export function ClientsPage() {
                       navigate("/timeline")
                     }}
                   >
-                    <TableCell className="font-medium">{user.name}</TableCell>
-                    <TableCell>{user.goal}</TableCell>
-                    <TableCell>{user.streak.current}</TableCell>
+                    <TableCell className="font-medium">
+                      {displayName(user)}
+                    </TableCell>
+                    <TableCell>
+                      {goalLabel(user.profile?.fitnessGoal)}
+                    </TableCell>
+                    <TableCell>
+                      {user.profile?.weight != null
+                        ? `${user.profile.weight} kg`
+                        : "—"}
+                    </TableCell>
                     <TableCell>{lastDate}</TableCell>
                     <TableCell>{kcal7}</TableCell>
                     <TableCell>
