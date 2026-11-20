@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom"
 import { toast } from "sonner"
 import { useAuth } from "@/context/AuthContext"
 import { useCreateWorkout } from "@/hooks/useCreateWorkout"
+import { ALGERIAN_CITIES } from "@/lib/locations"
 import { WORKOUT_TYPES } from "@/lib/roles"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -164,13 +165,22 @@ export function CreateWorkoutPage() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="city">City</Label>
-              <Input
-                id="city"
+              <Label>City</Label>
+              <Select
                 value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="Constantine"
-              />
+                onValueChange={(value) => value && setCity(value)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a city" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ALGERIAN_CITIES.map((cityName) => (
+                    <SelectItem key={cityName} value={cityName}>
+                      {cityName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="calories">Calories</Label>

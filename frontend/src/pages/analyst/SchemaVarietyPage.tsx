@@ -87,7 +87,8 @@ export function SchemaVarietyPage() {
                     </TableCell>
                     <TableCell>
                       {mark(
-                        (Array.isArray(a.photos) && a.photos.length > 0) ||
+                        (a.photoCount ?? 0) > 0 ||
+                          (Array.isArray(a.photos) && a.photos.length > 0) ||
                           (Array.isArray(a.photoObjects) &&
                             a.photoObjects.length > 0)
                       )}

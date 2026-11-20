@@ -45,7 +45,7 @@ export function ActivityCard({ activity }: ActivityCardProps) {
     ? activity.photos.length
     : Array.isArray(activity.photoObjects)
       ? activity.photoObjects.length
-      : 0
+      : activity.photoCount ?? 0
   const durationOnly = !hasGps && !hasHr && photoCount === 0
 
   return (

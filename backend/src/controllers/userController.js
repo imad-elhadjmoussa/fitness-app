@@ -122,6 +122,60 @@ exports.getUsers = async (req, res) => {
     }
 };
 
+// Public, read-only athlete directory. Do not expose contact details or email.
+exports.getPublicAthletes = async (_req, res) => {
+    try {
+        const users = await User.find({ role: "athlete" })
+            .select("firstName lastName role profile.fitnessGoal profile.weight createdAt updatedAt")
+            .sort({ createdAt: -1 })
+            .lean();
+
+        return res.status(200).json({
+            success: true,
+            count: users.length,
+            data: users
+        });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: "Error retrieving athletes",
+            error: error.message
+        });
+    }
+};
+
+exports.getPublicAthlete = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        if (!mongoose.isValidObjectId(userId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid user ID"
+            });
+        }
+
+        const user = await User.findOne({ _id: userId, role: "athlete" })
+            .select("firstName lastName role profile.fitnessGoal profile.weight createdAt updatedAt")
+            .lean();
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "Athlete not found"
+            });
+        }
+
+        return res.status(200).json({ success: true, data: user });
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: "Error retrieving athlete",
+            error: error.message
+        });
+    }
+};
+
 // ======================================
 // GET USER PROFILE
 // GET /api/users/:userId

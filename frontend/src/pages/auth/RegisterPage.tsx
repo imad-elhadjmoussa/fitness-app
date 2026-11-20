@@ -4,7 +4,7 @@ import { Activity } from "lucide-react"
 import { toast } from "sonner"
 import { useAuth } from "@/context/AuthContext"
 import { FITNESS_GOALS } from "@/lib/roles"
-import type { FitnessGoal, Role } from "@/types"
+import type { FitnessGoal } from "@/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -22,7 +22,6 @@ export function RegisterPage() {
   const [lastName, setLastName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [role, setRole] = useState<Role>("athlete")
   const [fitnessGoal, setFitnessGoal] = useState<FitnessGoal>("general_fitness")
   const [weight, setWeight] = useState("")
   const [phone, setPhone] = useState("")
@@ -41,7 +40,7 @@ export function RegisterPage() {
         lastName: lastName.trim(),
         email: email.trim(),
         password,
-        role,
+        role: "athlete",
         profile: {
           fitnessGoal,
           ...(weight ? { weight: Number(weight) } : {}),
@@ -66,7 +65,7 @@ export function RegisterPage() {
           <div>
             <p className="font-display text-xl tracking-tight">Join FitPulse</p>
             <p className="text-sm text-muted-foreground">
-              Create your athlete, coach, or analyst account
+              Create your athlete account
             </p>
           </div>
         </div>
@@ -110,19 +109,6 @@ export function RegisterPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
             />
-          </div>
-          <div className="space-y-2">
-            <Label>Role</Label>
-            <Select value={role} onValueChange={(v) => v && setRole(v as Role)}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="athlete">Athlete</SelectItem>
-                <SelectItem value="coach">Coach</SelectItem>
-                <SelectItem value="analyst">Analyst / Admin</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
           <div className="space-y-2">
             <Label>Fitness goal</Label>

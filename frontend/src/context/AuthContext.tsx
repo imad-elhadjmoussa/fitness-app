@@ -16,6 +16,7 @@ import {
   setToken,
 } from "@/lib/auth-storage"
 import type { RegisterInput, Role, User } from "@/types"
+import { STATIC_TOKEN, staticLogin } from "@/lib/static-access"
 
 interface AuthContextValue {
   user: User | null
@@ -71,6 +72,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(null)
       return
     }
+    if (getToken() === STATIC_TOKEN) {
+      setUser(readStoredUser())
+      return
+    }
     try {
       const me = await getMe()
       setUser({ ...me, role: (me.role as Role) || "athlete" })
@@ -103,7 +108,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     async (email: string, password: string) => {
+      const staticUser = staticLogin(email, password)
+      if (staticUser) {
+        persistSession(STATIC_TOKEN, staticUser)
+        return staticUser
+      }
+
       const payload = await apiLogin(email, password)
+      if (payload.user.role !== "athlete") {
+        throw new Error("Invalid coach or analyst credentials")
+      }
       persistSession(payload.token, {
         ...payload.user,
         role: payload.user.role || "athlete",

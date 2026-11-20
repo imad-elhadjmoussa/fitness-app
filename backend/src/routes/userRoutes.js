@@ -6,6 +6,8 @@ const { protect } = require("../middleware/auth");
 
 // Public registration
 router.post("/", userController.createUser);
+router.get("/public/athletes", userController.getPublicAthletes);
+router.get("/public/athletes/:userId", userController.getPublicAthlete);
 
 // Authenticated routes
 // Authenticated users can list accounts (athletes filtered client-side for leaderboard)

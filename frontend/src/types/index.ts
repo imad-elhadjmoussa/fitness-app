@@ -61,6 +61,7 @@ export interface Workout {
   gpsRoute?: GpsRoute
   heartRate?: HeartRate
   photos?: WorkoutPhoto[]
+  photoCount?: number
   deviceInfo?: DeviceInfo
   city?: string
   calories?: number
@@ -156,6 +157,7 @@ export interface Activity {
   gps?: { route: [number, number][] }
   hrSeries?: number[]
   photos?: string[]
+  photoCount?: number
   heartRate?: HeartRate
   gpsRoute?: GpsRoute
   photoObjects?: WorkoutPhoto[]

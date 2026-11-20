@@ -80,6 +80,11 @@ export function LoginPage() {
           </Link>
         </p>
 
+        <p className="mt-4 rounded-lg bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
+          Demo coach: coach@fitpulse.app / coach123<br />
+          Demo analyst: analyst@fitpulse.app / analyst123
+        </p>
+
       </div>
     </div>
   )

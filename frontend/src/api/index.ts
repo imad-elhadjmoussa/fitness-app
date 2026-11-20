@@ -13,6 +13,21 @@ import type {
   User,
   Workout,
 } from "@/types"
+import { getStoredUserJson } from "@/lib/auth-storage"
+import {
+  isStaticRole,
+} from "@/lib/static-access"
+
+function getSessionRole() {
+  try {
+    const raw = getStoredUserJson()
+    if (!raw) return undefined
+    const user = JSON.parse(raw) as User
+    return user.role
+  } catch {
+    return undefined
+  }
+}
 
 export async function login(
   email: string,
@@ -38,11 +53,20 @@ export async function getMe(): Promise<User> {
 }
 
 export async function getUsers(role?: string): Promise<User[]> {
+  if (isStaticRole(getSessionRole())) {
+    return apiData<User[]>("/api/users/public/athletes", { auth: false })
+  }
   const q = role ? `?role=${encodeURIComponent(role)}` : ""
   return apiData<User[]>(`/api/users${q}`)
 }
 
 export async function getUser(userId: string): Promise<User> {
+  if (isStaticRole(getSessionRole())) {
+    return apiData<User>(
+      `/api/users/public/athletes/${encodeURIComponent(userId)}`,
+      { auth: false }
+    )
+  }
   return apiData<User>(`/api/users/${encodeURIComponent(userId)}`)
 }
 
@@ -81,6 +105,13 @@ export async function getActivities(
   userId: string,
   _limit = 20
 ): Promise<Activity[]> {
+  if (isStaticRole(getSessionRole())) {
+    const workouts = await apiData<Workout[]>(
+      `/api/workouts/public/user/${encodeURIComponent(userId)}/recent`,
+      { auth: false }
+    )
+    return workouts.map(workoutToActivity)
+  }
   const workouts = await apiData<Workout[]>(
     `/api/workouts/user/${encodeURIComponent(userId)}/recent`
   )
@@ -145,7 +176,10 @@ export async function getSchemaVariety(): Promise<Activity[]> {
 }
 
 export async function getMultiCity(): Promise<MultiCityRow[]> {
-  return []
+  if (!isStaticRole(getSessionRole())) return []
+  return apiData<MultiCityRow[]>("/api/workouts/public/multi-city", {
+    auth: false,
+  })
 }
 
 export async function getEngagement(): Promise<EngagementStat[]> {

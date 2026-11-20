@@ -40,6 +40,7 @@ export function workoutToActivity(w: Workout): Activity {
     gps: route?.length ? { route } : undefined,
     hrSeries: hrSeries?.length ? hrSeries : undefined,
     photos: photoUrls?.length ? photoUrls : undefined,
+    photoCount: w.photoCount ?? photoUrls?.length,
     heartRate: w.heartRate,
     gpsRoute: w.gpsRoute,
     photoObjects: Array.isArray(w.photos)
