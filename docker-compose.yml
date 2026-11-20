@@ -1,0 +1,135 @@
+name: fitpulse-cluster
+
+x-mongo-node: &mongo-node
+  image: mongo:latest
+  restart: unless-stopped
+  networks:
+    - fitpulse
+  healthcheck:
+    test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand({ping: 1}).ok"]
+    interval: 5s
+    timeout: 5s
+    retries: 20
+
+services:
+  mongo-config-1:
+    <<: *mongo-node
+    command: ["mongod", "--configsvr", "--replSet", "cfgRS", "--bind_ip_all", "--port", "27017", "--wiredTigerCacheSizeGB", "0.25"]
+    ports: ["127.0.0.1:27021:27017"]
+    volumes: ["mongo-config-1:/data/configdb"]
+
+  mongo-config-2:
+    <<: *mongo-node
+    command: ["mongod", "--configsvr", "--replSet", "cfgRS", "--bind_ip_all", "--port", "27017", "--wiredTigerCacheSizeGB", "0.25"]
+    volumes: ["mongo-config-2:/data/configdb"]
+
+  mongo-config-3:
+    <<: *mongo-node
+    command: ["mongod", "--configsvr", "--replSet", "cfgRS", "--bind_ip_all", "--port", "27017", "--wiredTigerCacheSizeGB", "0.25"]
+    volumes: ["mongo-config-3:/data/configdb"]
+
+  mongo-shard-1a:
+    <<: *mongo-node
+    command: ["mongod", "--shardsvr", "--replSet", "shard1RS", "--bind_ip_all", "--port", "27017", "--wiredTigerCacheSizeGB", "0.25"]
+    ports: ["127.0.0.1:27022:27017"]
+    volumes: ["mongo-shard-1a:/data/db"]
+
+  mongo-shard-1b:
+    <<: *mongo-node
+    command: ["mongod", "--shardsvr", "--replSet", "shard1RS", "--bind_ip_all", "--port", "27017", "--wiredTigerCacheSizeGB", "0.25"]
+    volumes: ["mongo-shard-1b:/data/db"]
+
+  mongo-shard-1c:
+    <<: *mongo-node
+    command: ["mongod", "--shardsvr", "--replSet", "shard1RS", "--bind_ip_all", "--port", "27017", "--wiredTigerCacheSizeGB", "0.25"]
+    volumes: ["mongo-shard-1c:/data/db"]
+
+  mongo-shard-2a:
+    <<: *mongo-node
+    command: ["mongod", "--shardsvr", "--replSet", "shard2RS", "--bind_ip_all", "--port", "27017", "--wiredTigerCacheSizeGB", "0.25"]
+    ports: ["127.0.0.1:27023:27017"]
+    volumes: ["mongo-shard-2a:/data/db"]
+
+  mongo-shard-2b:
+    <<: *mongo-node
+    command: ["mongod", "--shardsvr", "--replSet", "shard2RS", "--bind_ip_all", "--port", "27017", "--wiredTigerCacheSizeGB", "0.25"]
+    volumes: ["mongo-shard-2b:/data/db"]
+
+  mongo-shard-2c:
+    <<: *mongo-node
+    command: ["mongod", "--shardsvr", "--replSet", "shard2RS", "--bind_ip_all", "--port", "27017", "--wiredTigerCacheSizeGB", "0.25"]
+    volumes: ["mongo-shard-2c:/data/db"]
+
+  replica-init:
+    image: mongo:latest
+    restart: "no"
+    networks: ["fitpulse"]
+    volumes: ["./docker/init-replica-sets.js:/scripts/init-replica-sets.js:ro"]
+    entrypoint:
+      - mongosh
+      - mongodb://mongo-config-1:27017/admin
+      - --quiet
+      - /scripts/init-replica-sets.js
+    depends_on:
+      mongo-config-1: { condition: service_healthy }
+      mongo-config-2: { condition: service_healthy }
+      mongo-config-3: { condition: service_healthy }
+      mongo-shard-1a: { condition: service_healthy }
+      mongo-shard-1b: { condition: service_healthy }
+      mongo-shard-1c: { condition: service_healthy }
+      mongo-shard-2a: { condition: service_healthy }
+      mongo-shard-2b: { condition: service_healthy }
+      mongo-shard-2c: { condition: service_healthy }
+
+  mongos:
+    image: mongo:latest
+    restart: unless-stopped
+    command:
+      - mongos
+      - --configdb
+      - cfgRS/mongo-config-1:27017,mongo-config-2:27017,mongo-config-3:27017
+      - --bind_ip_all
+      - --port
+      - "27017"
+    networks: ["fitpulse"]
+    ports: ["127.0.0.1:27030:27017"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand({ping: 1}).ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    depends_on:
+      replica-init: { condition: service_completed_successfully }
+      mongo-config-1: { condition: service_healthy }
+      mongo-config-2: { condition: service_healthy }
+      mongo-config-3: { condition: service_healthy }
+
+  cluster-init:
+    image: mongo:latest
+    restart: "no"
+    networks: ["fitpulse"]
+    volumes: ["./docker/init-shards.js:/scripts/init-shards.js:ro"]
+    entrypoint: ["mongosh", "mongodb://mongos:27017/admin", "--quiet", "/scripts/init-shards.js"]
+    depends_on:
+      mongos: { condition: service_healthy }
+      mongo-shard-1a: { condition: service_healthy }
+      mongo-shard-1b: { condition: service_healthy }
+      mongo-shard-1c: { condition: service_healthy }
+      mongo-shard-2a: { condition: service_healthy }
+      mongo-shard-2b: { condition: service_healthy }
+      mongo-shard-2c: { condition: service_healthy }
+
+networks:
+  fitpulse:
+    driver: bridge
+
+volumes:
+  mongo-config-1:
+  mongo-config-2:
+  mongo-config-3:
+  mongo-shard-1a:
+  mongo-shard-1b:
+  mongo-shard-1c:
+  mongo-shard-2a:
+  mongo-shard-2b:
+  mongo-shard-2c:

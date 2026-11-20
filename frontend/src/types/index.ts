@@ -143,6 +143,44 @@ export interface Job {
   status: "success" | "retrying" | "failed"
 }
 
+export interface ClusterMemberStatus {
+  name: string
+  state: string
+  healthy: boolean
+  lastAppliedAt?: string
+}
+
+export interface ReplicaSetStatus {
+  name: string
+  healthy: boolean
+  primary: string | null
+  healthyMembers: number
+  totalMembers: number
+  requiredForMajority: number
+  members: ClusterMemberStatus[]
+  error?: string
+}
+
+export interface ApiNodeStatus {
+  name: string
+  healthy: boolean
+  uptimeSeconds?: number
+  error?: string
+}
+
+export interface ClusterStatus {
+  healthy: boolean
+  router: boolean
+  mongoVersion: string
+  mongoUptimeSeconds: number
+  activeConnections: number
+  insertCommandsTotal: number
+  shardCount: number
+  writePolicy: string
+  replicaSets: ReplicaSetStatus[]
+  apiNodes: ApiNodeStatus[]
+}
+
 /** Normalized activity for UI cards */
 export interface Activity {
   _id: string

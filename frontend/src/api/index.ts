@@ -3,6 +3,7 @@ import { workoutToActivity } from "@/lib/mappers"
 import type {
   Activity,
   AuthPayload,
+  ClusterStatus,
   CreateWorkoutInput,
   DailyStat,
   EngagementStat,
@@ -188,4 +189,13 @@ export async function getEngagement(): Promise<EngagementStat[]> {
 
 export async function getJobs(): Promise<Job[]> {
   return []
+}
+
+export async function getClusterStatus(
+  adminKey: string
+): Promise<ClusterStatus> {
+  return apiData<ClusterStatus>("/api/admin/cluster", {
+    auth: false,
+    headers: { "x-admin-key": adminKey },
+  })
 }

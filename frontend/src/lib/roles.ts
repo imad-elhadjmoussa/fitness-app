@@ -42,6 +42,7 @@ export const ROLE_NAV: Record<Role, NavItem[]> = {
   ],
   analyst: [
     { to: "/engagement", label: "Engagement" },
+    { to: "/cluster", label: "Cluster monitor" },
     { to: "/multi-city", label: "Multi-city" },
     { to: "/schema-variety", label: "Schema variety" },
     { to: "/jobs", label: "Jobs" },

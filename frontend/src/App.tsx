@@ -14,6 +14,7 @@ import { EngagementPage } from "@/pages/analyst/EngagementPage"
 import { MultiCityPage } from "@/pages/analyst/MultiCityPage"
 import { SchemaVarietyPage } from "@/pages/analyst/SchemaVarietyPage"
 import { JobsPage } from "@/pages/analyst/JobsPage"
+import { ClusterMonitorPage } from "@/pages/analyst/ClusterMonitorPage"
 
 function HomeRedirect() {
   const { role } = useRole()
@@ -35,6 +36,7 @@ export default function App() {
         <Route path="profile" element={<ProfilePage />} />
         <Route path="clients" element={<ClientsPage />} />
         <Route path="engagement" element={<EngagementPage />} />
+        <Route path="cluster" element={<ClusterMonitorPage />} />
         <Route path="multi-city" element={<MultiCityPage />} />
         <Route path="schema-variety" element={<SchemaVarietyPage />} />
         <Route path="jobs" element={<JobsPage />} />
