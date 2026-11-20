@@ -30,7 +30,7 @@ export function JobsPage() {
           <p className="eyebrow">Ops</p>
           <h1 className="page-title">Jobs</h1>
           <p className="page-subtitle">
-            Scheduler jobs that refresh analytics collections (mock until the jobs API ships).
+            Scheduler jobs that refresh analytics collections.
           </p>
         </div>
       </header>

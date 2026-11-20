@@ -16,7 +16,6 @@ import {
   setToken,
 } from "@/lib/auth-storage"
 import type { RegisterInput, Role, User } from "@/types"
-import { USE_MOCK } from "@/api"
 
 interface AuthContextValue {
   user: User | null
@@ -68,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const refreshUser = useCallback(async () => {
-    if (!getToken() && !USE_MOCK) {
+    if (!getToken()) {
       setUser(null)
       return
     }
@@ -76,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const me = await getMe()
       setUser({ ...me, role: (me.role as Role) || "athlete" })
     } catch {
-      if (!USE_MOCK) logout()
+      logout()
     }
   }, [logout, setUser])
 
@@ -84,9 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let cancelled = false
     ;(async () => {
       try {
-        if (USE_MOCK && !getToken()) {
-          // stay logged out until mock login
-        } else if (getToken()) {
+        if (getToken()) {
           await refreshUser()
         }
       } finally {

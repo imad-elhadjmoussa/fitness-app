@@ -81,8 +81,7 @@ export function EngagementPage() {
           <p className="eyebrow">Analyst</p>
           <h1 className="page-title">Engagement</h1>
           <p className="page-subtitle">
-            Active users and weekly workout activity. Full engagement series
-            requires the analytics API or mock mode.
+            Active users and weekly workout activity.
           </p>
         </div>
       </header>

@@ -106,7 +106,6 @@ export interface ApiEnvelope<T> {
   error?: string
 }
 
-/** Legacy mock analytics types (still used when mocks are enabled) */
 export interface DailyStat {
   userId: string
   day: string
@@ -143,7 +142,7 @@ export interface Job {
   status: "success" | "retrying" | "failed"
 }
 
-/** Normalized activity for UI cards (works for mock + live) */
+/** Normalized activity for UI cards */
 export interface Activity {
   _id: string
   userId: string

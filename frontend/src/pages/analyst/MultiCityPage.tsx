@@ -2,7 +2,6 @@ import { useUsers } from "@/hooks/useUsers"
 import { useMultiCity } from "@/hooks/useMultiCity"
 import { DataState } from "@/components/DataState"
 import { displayName } from "@/lib/mappers"
-import { USE_MOCK } from "@/api"
 import {
   Table,
   TableBody,
@@ -44,9 +43,6 @@ export function MultiCityPage() {
           <h1 className="page-title">Multi-city</h1>
           <p className="page-subtitle">
             Users with workouts in two different cities within 24 hours.
-            {!USE_MOCK
-              ? " Live analytics endpoint is not available yet — enable mock mode to preview."
-              : ""}
           </p>
         </div>
       </header>

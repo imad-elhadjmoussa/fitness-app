@@ -15,7 +15,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { cn } from "cn"
-import { USE_MOCK } from "@/api"
 
 function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const { role } = useRole()
@@ -65,7 +64,6 @@ function SidebarBody({ onNavigate }: { onNavigate?: () => void }) {
         </p>
         <p className="mt-0.5 text-xs text-sidebar-foreground/55">
           {ROLE_LABELS[role]}
-          {USE_MOCK ? " · mock" : ""}
         </p>
         <p className="mt-1 truncate text-[11px] text-sidebar-foreground/45">
           {user?.email}

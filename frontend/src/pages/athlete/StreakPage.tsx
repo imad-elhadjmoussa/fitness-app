@@ -6,7 +6,6 @@ import { KpiCard } from "@/components/KpiCard"
 import { StreakTable } from "@/components/StreakTable"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { USE_MOCK } from "@/api"
 
 export function StreakPage() {
   const { user } = useAuth()
@@ -30,9 +29,7 @@ export function StreakPage() {
           <p className="eyebrow">Consistency</p>
           <h1 className="page-title">Streak</h1>
           <p className="page-subtitle">
-            {USE_MOCK
-              ? "Your streak and the leaderboard."
-              : "Leaderboard lists athletes. Full streak metrics arrive when the analytics API is ready."}
+            Leaderboard lists athletes. Full streak metrics arrive when the analytics API is ready.
           </p>
         </div>
       </header>

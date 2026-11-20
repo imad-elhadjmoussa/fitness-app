@@ -6,7 +6,6 @@ import { useAuth } from "@/context/AuthContext"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { USE_MOCK } from "@/api"
 
 export function LoginPage() {
   const { login, isAuthenticated, isLoading } = useAuth()
@@ -81,11 +80,6 @@ export function LoginPage() {
           </Link>
         </p>
 
-        {USE_MOCK ? (
-          <p className="mt-4 rounded-lg bg-muted/60 px-3 py-2 text-xs text-muted-foreground">
-            Mock mode is on — any email/password works.
-          </p>
-        ) : null}
       </div>
     </div>
   )

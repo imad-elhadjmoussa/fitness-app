@@ -50,6 +50,3 @@ export function workoutToActivity(w: Workout): Activity {
   }
 }
 
-export function mockActivityPassthrough(a: Activity): Activity {
-  return a
-}
