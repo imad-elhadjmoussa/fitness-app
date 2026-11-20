@@ -28,6 +28,12 @@ const userSchema = new mongoose.Schema(
             select: false
         },
 
+        role: {
+            type: String,
+            enum: ["athlete", "coach", "analyst"],
+            default: "athlete"
+        },
+
         profile: {
             fitnessGoal: {
                 type: String,

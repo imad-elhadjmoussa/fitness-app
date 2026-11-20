@@ -1,9 +1,10 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { updateUser } from "@/api"
-import type { User } from "@/types"
+import { updateUserProfile } from "@/api"
+import { useAuth } from "@/context/AuthContext"
 
 export function useUpdateUser() {
   const queryClient = useQueryClient()
+  const { setUser } = useAuth()
 
   return useMutation({
     mutationFn: ({
@@ -11,12 +12,16 @@ export function useUpdateUser() {
       patch,
     }: {
       id: string
-      patch: Partial<Pick<User, "goal" | "weightKg">> & {
-        contact?: Partial<User["contact"]>
+      patch: {
+        fitnessGoal?: string
+        weight?: number
+        contact?: { phone?: string; address?: string }
       }
-    }) => updateUser(id, patch),
-    onSuccess: () => {
+    }) => updateUserProfile(id, patch),
+    onSuccess: (user) => {
+      setUser(user)
       void queryClient.invalidateQueries({ queryKey: ["users"] })
+      void queryClient.invalidateQueries({ queryKey: ["user", user._id] })
       void queryClient.invalidateQueries({ queryKey: ["leaderboard"] })
     },
   })

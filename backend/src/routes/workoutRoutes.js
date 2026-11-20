@@ -2,13 +2,13 @@ const express = require("express");
 const router = express.Router();
 
 const workoutController = require("../controllers/workoutController");
+const { protect } = require("../middleware/auth");
 
-// Insert workout log
-router.post("/", workoutController.createWorkout);
+router.post("/", protect, workoutController.createWorkout);
 
-// Retrieve last 20 activities for a user
 router.get(
     "/user/:userId/recent",
+    protect,
     workoutController.getRecentWorkouts
 );
 

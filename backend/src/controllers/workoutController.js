@@ -31,7 +31,19 @@ exports.createWorkout = async (req, res) => {
             });
         }
 
-        // Create workout document
+        // Athletes may only log workouts for themselves
+        if (
+            req.user &&
+            req.user.role === "athlete" &&
+            req.user._id.toString() !== String(userId)
+        ) {
+            return res.status(403).json({
+                success: false,
+                message: "Athletes can only create workouts for themselves"
+            });
+        }
+
+        // Create workout document (strict:false allows extra fields like city/calories)
         const workout = new WorkoutLog({
             userId,
             workoutType,
@@ -40,7 +52,9 @@ exports.createWorkout = async (req, res) => {
             ...(gpsRoute !== undefined && { gpsRoute }),
             ...(heartRate !== undefined && { heartRate }),
             ...(photos !== undefined && { photos }),
-            ...(deviceInfo !== undefined && { deviceInfo })
+            ...(deviceInfo !== undefined && { deviceInfo }),
+            ...(req.body.city !== undefined && { city: req.body.city }),
+            ...(req.body.calories !== undefined && { calories: req.body.calories })
         });
 
         // Save to MongoDB
@@ -78,11 +92,22 @@ exports.getRecentWorkouts = async (req, res) => {
             });
         }
 
+        if (
+            req.user &&
+            req.user.role === "athlete" &&
+            req.user._id.toString() !== String(userId)
+        ) {
+            return res.status(403).json({
+                success: false,
+                message: "Athletes can only view their own workouts"
+            });
+        }
+
         // Retrieve last 20 workouts
         const workouts = await WorkoutLog.find({
             userId: new mongoose.Types.ObjectId(userId)
         })
-            .sort({ date: -1 })
+            .sort({ date: -1, _id: -1 })
             .limit(20)
             .lean();
 

@@ -2,102 +2,81 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from "react"
 import { useNavigate } from "react-router-dom"
+import { useAuth } from "@/context/AuthContext"
 import type { Role } from "@/types"
-import {
-  ATHLETE_USER_ID,
-  defaultPathForRole,
-  ROLE_DISPLAY_NAME,
-} from "@/lib/roles"
-
-const STORAGE_KEY = "fitpulse-role"
-
-interface StoredRole {
-  role: Role
-  currentUserId: string
-}
+import { defaultPathForRole } from "@/lib/roles"
 
 interface RoleContextValue {
   role: Role
   currentUserId: string
   displayName: string
-  setRole: (role: Role) => void
   setCurrentUserId: (userId: string) => void
 }
 
 const RoleContext = createContext<RoleContextValue | null>(null)
+const CLIENT_KEY = "fitpulse-selected-client"
 
-function readStored(): StoredRole {
+function readClientId(fallback: string): string {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return { role: "athlete", currentUserId: ATHLETE_USER_ID }
-    const parsed = JSON.parse(raw) as Partial<StoredRole>
-    const role: Role =
-      parsed.role === "coach" || parsed.role === "analyst"
-        ? parsed.role
-        : "athlete"
-    return {
-      role,
-      currentUserId:
-        typeof parsed.currentUserId === "string"
-          ? parsed.currentUserId
-          : ATHLETE_USER_ID,
-    }
+    return localStorage.getItem(CLIENT_KEY) || fallback
   } catch {
-    return { role: "athlete", currentUserId: ATHLETE_USER_ID }
-  }
-}
-
-function persist(state: StoredRole) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-  } catch {
-    // ignore quota / private mode
+    return fallback
   }
 }
 
 export function RoleProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth()
   const navigate = useNavigate()
-  const [state, setState] = useState<StoredRole>(() => readStored())
+  const role: Role = user?.role ?? "athlete"
+  const selfId = user?._id ?? ""
 
-  const setRole = useCallback(
-    (role: Role) => {
-      setState((prev) => {
-        const next: StoredRole = {
-          role,
-          currentUserId:
-            role === "athlete" ? ATHLETE_USER_ID : prev.currentUserId,
-        }
-        persist(next)
-        return next
-      })
-      navigate(defaultPathForRole(role), { replace: true })
-    },
-    [navigate]
+  const [currentUserId, setCurrentUserIdState] = useState(() =>
+    readClientId(selfId)
   )
 
+  useEffect(() => {
+    if (!user) return
+    if (user.role === "athlete") {
+      setCurrentUserIdState(user._id)
+    } else if (!currentUserId) {
+      setCurrentUserIdState(readClientId(user._id))
+    }
+  }, [user, currentUserId])
+
   const setCurrentUserId = useCallback((userId: string) => {
-    setState((prev) => {
-      const next = { ...prev, currentUserId: userId }
-      persist(next)
-      return next
-    })
+    setCurrentUserIdState(userId)
+    try {
+      localStorage.setItem(CLIENT_KEY, userId)
+    } catch {
+      // ignore
+    }
   }, [])
+
+  // When role identity changes after login, land on the role home
+  useEffect(() => {
+    if (!user) return
+    const path = defaultPathForRole(user.role || "athlete")
+    if (window.location.pathname === "/login" || window.location.pathname === "/register") {
+      navigate(path, { replace: true })
+    }
+  }, [user?._id, user?.role, navigate, user])
 
   const value = useMemo<RoleContextValue>(
     () => ({
-      role: state.role,
-      currentUserId:
-        state.role === "athlete" ? ATHLETE_USER_ID : state.currentUserId,
-      displayName: ROLE_DISPLAY_NAME[state.role],
-      setRole,
+      role,
+      currentUserId: role === "athlete" ? selfId : currentUserId || selfId,
+      displayName: user
+        ? `${user.firstName} ${user.lastName}`.trim()
+        : "Guest",
       setCurrentUserId,
     }),
-    [state, setRole, setCurrentUserId]
+    [role, selfId, currentUserId, user, setCurrentUserId]
   )
 
   return <RoleContext.Provider value={value}>{children}</RoleContext.Provider>
