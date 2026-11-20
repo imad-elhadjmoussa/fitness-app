@@ -12,4 +12,10 @@ router.get(
     workoutController.getRecentWorkouts
 );
 
+// Find users with workouts in different cities
+router.get(
+    "/users-with-city-changes",
+    workoutController.getUsersWithWorkoutsInDifferentCities
+);
+
 module.exports = router;
